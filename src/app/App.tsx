@@ -1,63 +1,62 @@
-// src/app/App.tsx
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { getKrakenWsService } from "../api/krakenWsService";
 import { applySnapshot, applyDeltas } from "../core/orderbook/orderbookReducer";
-import { OrderBookSnapshot } from "../types/domain";
 import { KrakenOrderBookData } from "../types/krakenRaw";
 import { DEFAULT_DEPTH } from "../config/krakenConfig";
+import { useOrderbookStore } from "../state/useOrderbookStore";
 
 function App() {
-  const snapshotRef = useRef<OrderBookSnapshot | null>(null);
+  const snapshot = useOrderbookStore((s) => s.snapshot);
+  const setSnapshot = useOrderbookStore((s) => s.setSnapshot);
+  const reset = useOrderbookStore((s) => s.reset);
+
+  // // DEBUG: log whenever the snapshot in the store changes
+  // useEffect(() => {
+  //   if (snapshot) {
+  //     console.log("STORE SNAPSHOT:", snapshot);
+  //   }
+  // }, [snapshot]);
 
   useEffect(() => {
     const service = getKrakenWsService();
+    let currentSnapshot = null;
 
-    service.onMessage((data: any) => {
-      // Ignore heartbeat + non-array messages
-      if (!Array.isArray(data)) {
+    service.onMessage((msg: any) => {
+      if (!Array.isArray(msg)) return;
+
+      const [, payload, channel] = msg;
+      if (channel !== "book-25") return;
+
+      const book = payload as KrakenOrderBookData;
+
+      // Snapshot (initial)
+      if (book.as || book.bs) {
+        currentSnapshot = applySnapshot(currentSnapshot, book);
+        setSnapshot(currentSnapshot);
         return;
       }
 
-      const [, payload, channelName] = data;
-
-      if (channelName !== "book-25") {
-        return;
-      }
-
-      const bookData = payload as KrakenOrderBookData;
-
-      // Snapshot (as/bs present)
-      if (bookData.as || bookData.bs) {
-        snapshotRef.current = applySnapshot(snapshotRef.current, bookData);
-      }
-      // Delta (a/b present)
-      else if (snapshotRef.current && (bookData.a || bookData.b)) {
-        snapshotRef.current = applyDeltas(snapshotRef.current, bookData, DEFAULT_DEPTH);
-      }
-
-      if (snapshotRef.current) {
-        console.log("NORMALIZED SNAPSHOT:", snapshotRef.current);
+      // Delta (updates)
+      if (currentSnapshot && (book.a || book.b)) {
+        currentSnapshot = applyDeltas(currentSnapshot, book, DEFAULT_DEPTH);
+        setSnapshot(currentSnapshot);
       }
     });
 
     service.onOpen(() => {
-      console.log("Kraken WS connected, subscribing...");
+      console.log("WS connected");
       service.subscribeOrderBook();
     });
 
     service.connect();
+    reset();
 
-    return () => {
-      service.disconnect();
-    };
-  }, []);
+    return () => service.disconnect();
+  }, [setSnapshot, reset]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div>
-        <h1 className="text-xl font-bold mb-2">Kraken Depth Explorer (WS Test)</h1>
-        <p>Open the console to see normalized orderbook snapshots.</p>
-      </div>
+      <h1 className="text-xl font-bold">Kraken Depth Explorer</h1>
     </div>
   );
 }
