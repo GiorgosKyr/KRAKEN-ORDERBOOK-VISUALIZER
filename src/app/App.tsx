@@ -6,6 +6,8 @@ import { DEFAULT_DEPTH } from "../config/krakenConfig";
 import { useOrderbookStore } from "../state/useOrderbookStore";
 import { OrderbookTable } from "../components/orderbook/OrderbookTable";
 import { SpreadIndicator } from "../components/orderbook/SpreadIndicator";
+import { globalSnapshotBuffer } from "../core/playback/snapshotBuffer";
+
 function App() {
   const snapshot = useOrderbookStore((s) => s.snapshot);
   const setSnapshot = useOrderbookStore((s) => s.setSnapshot);
@@ -34,6 +36,8 @@ function App() {
       if (book.as || book.bs) {
         currentSnapshot = applySnapshot(currentSnapshot, book);
         setSnapshot(currentSnapshot);
+        globalSnapshotBuffer.add(currentSnapshot);
+
         return;
       }
 
@@ -41,7 +45,12 @@ function App() {
       if (currentSnapshot && (book.a || book.b)) {
         currentSnapshot = applyDeltas(currentSnapshot, book, DEFAULT_DEPTH);
         setSnapshot(currentSnapshot);
+        globalSnapshotBuffer.add(currentSnapshot);
+
       }
+
+    //console.log("Buffer size:", globalSnapshotBuffer.getRange().length);
+
     });
 
     service.onOpen(() => {
