@@ -4,7 +4,8 @@ import { applySnapshot, applyDeltas } from "../core/orderbook/orderbookReducer";
 import { KrakenOrderBookData } from "../types/krakenRaw";
 import { DEFAULT_DEPTH } from "../config/krakenConfig";
 import { useOrderbookStore } from "../state/useOrderbookStore";
-
+import { OrderbookTable } from "../components/orderbook/OrderbookTable";
+import { SpreadIndicator } from "../components/orderbook/SpreadIndicator";
 function App() {
   const snapshot = useOrderbookStore((s) => s.snapshot);
   const setSnapshot = useOrderbookStore((s) => s.setSnapshot);
@@ -55,10 +56,12 @@ function App() {
   }, [setSnapshot, reset]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <h1 className="text-xl font-bold">Kraken Depth Explorer</h1>
+    <div className="min-h-screen flex items-center justify-center bg-black text-white">
+      <SpreadIndicator />
+      <OrderbookTable maxRows={15} />
     </div>
   );
+
 }
 
 export default App;
