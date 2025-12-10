@@ -12,7 +12,8 @@ import { TimelineSlider } from "../components/playback/TimelineSlider";
 import { PlaybackControls } from "../components/playback/PlaybackControls";
 import { usePlaybackStore } from "../state/usePlaybackStore";
 import { OrderbookHeatmap } from "../components/orderbook/OrderbookHeatmap";
-
+import { detectLiquidityWalls } from "../core/events/liquidityEvents";
+import { OrderBookSnapshot } from "../types/domain";
 
 function App() {
   const snapshot = usePlaybackSnapshot();
@@ -26,11 +27,10 @@ function App() {
   //   }
   // }, [snapshot]);
 
-  useEffect(() => {
+useEffect(() => {
     const service = getKrakenWsService();
-    let currentSnapshot = null;
+    let currentSnapshot: OrderBookSnapshot | null = null;
 
-    // We need a non-hook way to read mode inside handlers
     const getPlaybackMode = () => usePlaybackStore.getState().mode;
 
     service.onMessage((msg: any) => {
@@ -41,31 +41,55 @@ function App() {
 
       const book = payload as KrakenOrderBookData;
 
-      // Snapshot (initial)
+      // Helper: deep clone previous snapshot
+      const clonePrev = (): OrderBookSnapshot | null =>
+        currentSnapshot ? JSON.parse(JSON.stringify(currentSnapshot)) : null;
+
+      // === Snapshot (initial/full) ===
       if (book.as || book.bs) {
+        const prevSnapshot = clonePrev();
+
         currentSnapshot = applySnapshot(currentSnapshot, book);
         setSnapshot(currentSnapshot);
 
-        // Only record history in LIVE mode
-        if (getPlaybackMode() === "live") {
+        if (getPlaybackMode() === "live" && currentSnapshot) {
           globalSnapshotBuffer.add(currentSnapshot);
+        }
+
+        if (prevSnapshot && currentSnapshot) {
+          const events = detectLiquidityWalls(prevSnapshot, currentSnapshot, {
+            askThreshold: 10,
+            bidThreshold: 10,
+          });
+          if (events.length) {
+            console.log("Liquidity events:", events);
+          }
         }
 
         return;
       }
 
-      // Delta (updates)
+      // === Delta (incremental) ===
       if (currentSnapshot && (book.a || book.b)) {
+        const prevSnapshot = clonePrev();
+
         currentSnapshot = applyDeltas(currentSnapshot, book, DEFAULT_DEPTH);
         setSnapshot(currentSnapshot);
 
-        if (getPlaybackMode() === "live") {
+        if (getPlaybackMode() === "live" && currentSnapshot) {
           globalSnapshotBuffer.add(currentSnapshot);
         }
+
+        if (prevSnapshot && currentSnapshot) {
+          const events = detectLiquidityWalls(prevSnapshot, currentSnapshot, {
+            askThreshold: 10,
+            bidThreshold: 10,
+          });
+          if (events.length) {
+            console.log("Liquidity events:", events);
+          }
+        }
       }
-
-    //console.log("Buffer size:", globalSnapshotBuffer.getRange().length);
-
     });
 
     service.onOpen(() => {
@@ -78,6 +102,8 @@ function App() {
 
     return () => service.disconnect();
   }, [setSnapshot, reset]);
+
+
 
   return (
     <div className="w-full max-w-5xl px-4 py-4 flex flex-col gap-4">
