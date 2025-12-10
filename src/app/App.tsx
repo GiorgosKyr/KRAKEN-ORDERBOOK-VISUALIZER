@@ -11,6 +11,7 @@ import { usePlaybackSnapshot } from "../hooks/usePlaybackSnapshot";
 import { TimelineSlider } from "../components/playback/TimelineSlider";
 import { PlaybackControls } from "../components/playback/PlaybackControls";
 import { usePlaybackStore } from "../state/usePlaybackStore";
+import { OrderbookHeatmap } from "../components/orderbook/OrderbookHeatmap";
 
 
 function App() {
@@ -79,11 +80,17 @@ function App() {
   }, [setSnapshot, reset]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-black text-white">
+    <div className="w-full max-w-5xl px-4 py-4 flex flex-col gap-4">
       <PlaybackControls />
       <TimelineSlider />
-      <SpreadIndicator />
-      <OrderbookTable maxRows={15} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <OrderbookHeatmap maxRows={20} />
+        <div className="flex flex-col gap-2">
+          <SpreadIndicator />
+          <OrderbookTable maxRows={15} />
+        </div>
+      </div>
     </div>
   );
 
