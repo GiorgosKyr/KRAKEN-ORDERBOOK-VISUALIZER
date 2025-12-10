@@ -1,10 +1,9 @@
-// TODO: Display current mid price and spread derived from snapshot
 // src/components/orderbook/SpreadIndicator.tsx
 
-import { useOrderbookStore } from "../../state/useOrderbookStore";
+import { usePlaybackSnapshot } from "../../hooks/usePlaybackSnapshot";
 
 export function SpreadIndicator() {
-  const snapshot = useOrderbookStore((s) => s.snapshot);
+  const snapshot = usePlaybackSnapshot();
 
   if (!snapshot || snapshot.asks.length === 0 || snapshot.bids.length === 0) {
     return (
@@ -21,7 +20,7 @@ export function SpreadIndicator() {
   const mid = (bestAsk + bestBid) / 2;
 
   return (
-    <div className="p-2 rounded bg-black/50 border border-gray-700 text-sm text-white mb-2">
+    <div className="p-2 rounded bg-black/50 border border-gray-700 text-sm text-white mb-2 w-full max-w-xl">
       <div className="flex justify-between">
         <div>Best Bid:</div>
         <div className="font-mono text-green-400">{bestBid.toFixed(1)}</div>

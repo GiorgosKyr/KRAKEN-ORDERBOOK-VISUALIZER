@@ -1,7 +1,6 @@
-// TODO: Render top N bids and asks with price, size, and cumulative size
 // src/components/orderbook/OrderbookTable.tsx
 
-import { useOrderbookStore } from "../../state/useOrderbookStore";
+import { usePlaybackSnapshot } from "../../hooks/usePlaybackSnapshot";
 import { OrderBookLevel } from "../../types/domain";
 
 interface OrderbookTableProps {
@@ -9,7 +8,7 @@ interface OrderbookTableProps {
 }
 
 export function OrderbookTable({ maxRows = 15 }: OrderbookTableProps) {
-  const snapshot = useOrderbookStore((s) => s.snapshot);
+  const snapshot = usePlaybackSnapshot();
 
   if (!snapshot) {
     return (
@@ -27,10 +26,10 @@ export function OrderbookTable({ maxRows = 15 }: OrderbookTableProps) {
   const renderRow = (level: OrderBookLevel, side: "bid" | "ask", index: number) => (
     <tr key={`${side}-${level.price}-${index}`}>
       <td className="px-2 py-0.5 text-xs text-gray-500">{side.toUpperCase()}</td>
-      <td className="px-2 py-0.5 text-xs font-mono">
+      <td className="px-2 py-0.5 text-xs font-mono text-right">
         {level.price.toFixed(1)}
       </td>
-      <td className="px-2 py-0.5 text-xs font-mono">
+      <td className="px-2 py-0.5 text-xs font-mono text-right">
         {level.size.toFixed(6)}
       </td>
     </tr>
@@ -50,14 +49,12 @@ export function OrderbookTable({ maxRows = 15 }: OrderbookTableProps) {
           </tr>
         </thead>
         <tbody>
-          {/* Asks first (from lowest ask upwards) */}
+          {/* Asks */}
           {topAsks.map((l, i) => renderRow(l, "ask", i))}
-
-          {/* Spacer row */}
+          {/* Spacer */}
           <tr>
             <td colSpan={3} className="py-1" />
           </tr>
-
           {/* Bids */}
           {topBids.map((l, i) => renderRow(l, "bid", i))}
         </tbody>

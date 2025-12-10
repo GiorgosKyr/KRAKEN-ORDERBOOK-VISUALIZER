@@ -17,9 +17,11 @@ export class SnapshotBuffer {
   }
 
   add(snapshot: OrderBookSnapshot) {
+    // Deep clone to prevent mutations from affecting historical snapshots
+    const clonedSnapshot = JSON.parse(JSON.stringify(snapshot));
     this.buffer.push({
       timestamp: snapshot.timestamp,
-      snapshot,
+      snapshot: clonedSnapshot,
     });
 
     if (this.buffer.length > this.maxSize) {
