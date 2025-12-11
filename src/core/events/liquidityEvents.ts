@@ -13,6 +13,8 @@ export interface LiquidityEvent {
   threshold: number;
 }
 
+export type LiquidityEventInput = Omit<LiquidityEvent, 'id'>;
+
 function buildLevelMap(levels: OrderBookLevel[]): Map<number, number> {
   const map = new Map<number, number>();
   for (const lvl of levels) {
@@ -25,7 +27,7 @@ export function detectLiquidityWalls(
   prev: OrderBookSnapshot | null,
   curr: OrderBookSnapshot,
   opts?: { askThreshold?: number; bidThreshold?: number }
-): LiquidityEvent[] {
+): LiquidityEventInput[] {
   if (!prev) return [];
 
   const askThreshold = opts?.askThreshold ?? 3;
@@ -36,7 +38,7 @@ export function detectLiquidityWalls(
   const prevBidMap = buildLevelMap(prev.bids);
   const currBidMap = buildLevelMap(curr.bids);
 
-  const events: LiquidityEvent[] = [];
+  const events: LiquidityEventInput[] = [];
 
   const push = (
     side: LiquiditySide,
@@ -46,7 +48,6 @@ export function detectLiquidityWalls(
     threshold: number
   ) => {
     events.push({
-      id: `${curr.timestamp}-${side}-${type}-${price.toFixed(1)}`,
       timestamp: curr.timestamp,
       side,
       type,

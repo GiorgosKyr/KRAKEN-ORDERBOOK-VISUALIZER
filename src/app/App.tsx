@@ -14,6 +14,9 @@ import { usePlaybackStore } from "../state/usePlaybackStore";
 import { OrderbookHeatmap } from "../components/orderbook/OrderbookHeatmap";
 import { detectLiquidityWalls } from "../core/events/liquidityEvents";
 import { OrderBookSnapshot } from "../types/domain";
+import { useEventsStore } from "../state/useEventsStore";
+import { LiquidityEventsList } from "../components/events/LiquidityEventsList";
+
 
 function App() {
   const snapshot = usePlaybackSnapshot();
@@ -28,7 +31,10 @@ function App() {
   // }, [snapshot]);
 
 useEffect(() => {
+
     const service = getKrakenWsService();
+    const addEvents = useEventsStore.getState().addEvents;
+
     let currentSnapshot: OrderBookSnapshot | null = null;
 
     const getPlaybackMode = () => usePlaybackStore.getState().mode;
@@ -63,6 +69,7 @@ useEffect(() => {
           });
           if (events.length) {
             console.log("Liquidity events:", events);
+            addEvents(events);
           }
         }
 
@@ -87,6 +94,7 @@ useEffect(() => {
           });
           if (events.length) {
             console.log("Liquidity events:", events);
+            addEvents(events);
           }
         }
       }
@@ -106,15 +114,19 @@ useEffect(() => {
 
 
   return (
+
     <div className="w-full max-w-5xl px-4 py-4 flex flex-col gap-4">
       <PlaybackControls />
       <TimelineSlider />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-        <OrderbookHeatmap maxRows={20} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+        <div className="md:col-span-2">
+          <OrderbookHeatmap maxRows={20} />
+        </div>
         <div className="flex flex-col gap-2">
           <SpreadIndicator />
           <OrderbookTable maxRows={15} />
+          <LiquidityEventsList />
         </div>
       </div>
     </div>
