@@ -32,6 +32,8 @@ export function OrderbookHeatmap({ maxRows = 20 }: OrderbookHeatmapProps) {
   const { slice: topAsks, maxSize: maxAskSize } = normalizeLevels(asks, maxRows);
   const { slice: topBids, maxSize: maxBidSize } = normalizeLevels(bids, maxRows);
 
+  const maxSize = Math.max(maxAskSize, maxBidSize);
+
   const renderAskRow = (level: OrderBookLevel, index: number) => {
     const fraction = maxAskSize > 0 ? level.size / maxAskSize : 0;
     const widthPct = Math.max(fraction * 100, 5); // at least 5% visible
@@ -107,45 +109,61 @@ export function OrderbookHeatmap({ maxRows = 20 }: OrderbookHeatmapProps) {
   };
 
   return (
-    <div className="w-full max-w-3xl border border-gray-800 rounded-lg bg-black/60 p-3 text-white">
-      <div className="flex items-center justify-between mb-2 text-xs text-gray-400">
-        <span className="font-semibold text-sm">Orderbook Heatmap</span>
-        <span>
-          Levels shown: {Math.min(maxRows, asks.length)}/{asks.length} asks •{" "}
-          {Math.min(maxRows, bids.length)}/{bids.length} bids
-        </span>
+    <div className="heatmap-container">
+      {/* ASK SIDE */}
+      <div style={{ flex: 1 }}>
+        <h3 style={{ margin: "4px 0", color: "#cc0000", fontSize: "14px", fontWeight: "bold", fontFamily: "'JetBrains Mono', monospace" }}>Asks</h3>
+        {asks.slice(0, 20).filter(lvl => lvl.size >= 0.0001).map((lvl, i) => {
+          const pct = maxSize > 0 ? (lvl.size / maxSize) * 100 : 0;
+          return (
+            <div
+              key={`ask-${lvl.price}-${i}`}
+              className="heatmap-row"
+              title={`Price: ${lvl.price.toFixed(2)}\nSize: ${lvl.size.toFixed(4)}`}
+            >
+              <div style={{ textAlign: "right", paddingRight: "8px", color: "#ff6b6b" }}>
+                {lvl.price.toFixed(1)}
+              </div>
+              <div style={{ textAlign: "right", paddingRight: "8px", color: "#ffffff" }}>
+                {lvl.size.toFixed(2)}
+              </div>
+              <div className="heatmap-bar-container">
+                <div
+                  className="heatmap-bar-ask"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {/* Asks panel */}
-        <div>
-          <div className="flex items-center justify-between mb-1 text-[11px] text-red-300">
-            <span>ASKS (sellers)</span>
-            <span>Price / Size</span>
-          </div>
-          <div className="border border-gray-800 rounded-md px-2 py-1 max-h-64 overflow-hidden">
-            {topAsks.length === 0 ? (
-              <div className="text-xs text-gray-500 py-2">No asks available</div>
-            ) : (
-              topAsks.map(renderAskRow)
-            )}
-          </div>
-        </div>
-
-        {/* Bids panel */}
-        <div>
-          <div className="flex items-center justify-between mb-1 text-[11px] text-emerald-300">
-            <span>Price / Size</span>
-            <span>BIDS (buyers)</span>
-          </div>
-          <div className="border border-gray-800 rounded-md px-2 py-1 max-h-64 overflow-hidden">
-            {topBids.length === 0 ? (
-              <div className="text-xs text-gray-500 py-2">No bids available</div>
-            ) : (
-              topBids.map(renderBidRow)
-            )}
-          </div>
-        </div>
+      {/* BID SIDE */}
+      <div style={{ flex: 1 }}>
+        <h3 style={{ margin: "4px 0", color: "#00aa00", fontSize: "14px", fontWeight: "bold", fontFamily: "'JetBrains Mono', monospace" }}>Bids</h3>
+        {bids.slice(0, 20).filter(lvl => lvl.size >= 0.0001).map((lvl, i) => {
+          const pct = maxSize > 0 ? (lvl.size / maxSize) * 100 : 0;
+          return (
+            <div
+              key={`bid-${lvl.price}-${i}`}
+              className="heatmap-row"
+              title={`Price: ${lvl.price.toFixed(2)}\nSize: ${lvl.size.toFixed(4)}`}
+            >
+              <div style={{ textAlign: "right", paddingRight: "8px", color: "#4ade80" }}>
+                {lvl.price.toFixed(1)}
+              </div>
+              <div style={{ textAlign: "right", paddingRight: "8px", color: "#ffffff" }}>
+                {lvl.size.toFixed(2)}
+              </div>
+              <div className="heatmap-bar-container">
+                <div
+                  className="heatmap-bar-bid"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

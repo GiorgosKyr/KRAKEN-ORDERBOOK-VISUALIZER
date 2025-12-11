@@ -64,8 +64,8 @@ useEffect(() => {
 
         if (prevSnapshot && currentSnapshot) {
           const events = detectLiquidityWalls(prevSnapshot, currentSnapshot, {
-            askThreshold: 10,
-            bidThreshold: 10,
+            askThreshold: 8,
+            bidThreshold: 8,
           });
           if (events.length) {
             console.log("Liquidity events:", events);
@@ -89,8 +89,8 @@ useEffect(() => {
 
         if (prevSnapshot && currentSnapshot) {
           const events = detectLiquidityWalls(prevSnapshot, currentSnapshot, {
-            askThreshold: 10,
-            bidThreshold: 10,
+            askThreshold: 8,
+            bidThreshold: 8,
           });
           if (events.length) {
             console.log("Liquidity events:", events);
@@ -125,7 +125,7 @@ useEffect(() => {
         </div>
         <div className="flex flex-col gap-2">
           <SpreadIndicator />
-          <OrderbookTable maxRows={15} />
+          {/* <OrderbookTable maxRows={15} /> */}
           <LiquidityEventsList />
         </div>
       </div>
