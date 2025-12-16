@@ -9,11 +9,17 @@ interface EventsState {
   eventCounter: number;
   addEvents: (newEvents: LiquidityEventInput[]) => void;
   clear: () => void;
+  askThreshold: number;
+  bidThreshold: number;
+  setAskThreshold: (v: number) => void;
+  setBidThreshold: (v: number) => void;
 }
 
 export const useEventsStore = create<EventsState>((set) => ({
   events: [],
   eventCounter: 0,
+  askThreshold: 6,
+  bidThreshold: 6,
 
   addEvents: (newEvents) =>
     set((state) => {
@@ -59,4 +65,6 @@ export const useEventsStore = create<EventsState>((set) => ({
     }),
 
   clear: () => set({ events: [], eventCounter: 0 }),
+  setAskThreshold: (v: number) => set({ askThreshold: v }),
+  setBidThreshold: (v: number) => set({ bidThreshold: v }),
 }));

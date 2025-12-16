@@ -15,10 +15,17 @@ export interface LiquidityEvent {
 
 export type LiquidityEventInput = Omit<LiquidityEvent, 'id'>;
 
+function normalizePrice(p: number) {
+  // Round to 1 decimal to avoid tiny price key mismatches across snapshots
+  return Number(p.toFixed(1));
+}
+
 function buildLevelMap(levels: OrderBookLevel[]): Map<number, number> {
   const map = new Map<number, number>();
   for (const lvl of levels) {
-    map.set(lvl.price, lvl.size);
+    const rp = normalizePrice(lvl.price);
+    const prev = map.get(rp) ?? 0;
+    map.set(rp, prev + lvl.size);
   }
   return map;
 }
@@ -94,7 +101,8 @@ export function detectLiquidityWalls(
   for (const [price, prevSize] of prevAskMap.entries()) {
     const currSize = currAskMap.get(price) ?? 0;
 
-    const prevIsWall = prevSize >= askRemove;
+    // Consider a level a prior "wall" only if it met the create threshold previously.
+    const prevIsWall = prevSize >= askCreate;
     const currIsWallCreate = currSize >= askCreate;
     const currIsWallRemove = currSize < askRemove;
 
@@ -119,7 +127,8 @@ export function detectLiquidityWalls(
   for (const [price, prevSize] of prevBidMap.entries()) {
     const currSize = currBidMap.get(price) ?? 0;
 
-    const prevIsWall = prevSize >= bidRemove;
+    // Only treat previous level as a wall if it previously met the create threshold.
+    const prevIsWall = prevSize >= bidCreate;
     const currIsWallCreate = currSize >= bidCreate;
     const currIsWallRemove = currSize < bidRemove;
 

@@ -13,6 +13,7 @@ export function TimelineSlider() {
 
   const [minTs, setMinTs] = useState<number | null>(null);
   const [maxTs, setMaxTs] = useState<number | null>(null);
+  const highlightedEventTime = usePlaybackStore((s) => s.highlightedEventTime);
 
   // Only update min/max while in LIVE mode
   useEffect(() => {
@@ -52,6 +53,21 @@ export function TimelineSlider() {
     );
   }
 
+  const renderEventMarker = () => {
+    if (!highlightedEventTime || !minTs || !maxTs) return null;
+    if (highlightedEventTime < minTs || highlightedEventTime > maxTs) return null;
+    const pct = ((highlightedEventTime - minTs) / (maxTs - minTs)) * 100;
+
+    return (
+      <div style={{ position: "absolute", left: `${pct}%`, top: "50%", transform: "translate(-50%, -60%)", pointerEvents: "none", zIndex: 5 }}>
+        <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 0C10.3137 0 13 2.68629 13 6C13 10.5 7 18 7 18C7 18 1 10.5 1 6C1 2.68629 3.68629 0 7 0Z" fill="#ef4444" stroke="#0f172a" strokeWidth="1"/>
+          <circle cx="7" cy="5.2" r="1.6" fill="#fff" opacity="0.18" />
+        </svg>
+      </div>
+    );
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const ts = Number(e.target.value);
     if (!Number.isFinite(ts)) return;
@@ -68,7 +84,7 @@ export function TimelineSlider() {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto mb-3">
+    <div className="w-full max-w-xl mx-auto mb-3" style={{ position: "relative" }}>
       <div className="flex items-center justify-between mb-1 text-xs text-gray-400">
         <span>
           Mode:{" "}
@@ -84,14 +100,17 @@ export function TimelineSlider() {
           Back to Live
         </button>
       </div>
-      <input
-        type="range"
-        min={minTs}
-        max={maxTs}
-        value={sliderValue}
-        onChange={handleChange}
-        className="w-full"
-      />
+      <div style={{ position: "relative", width: "100%" }}>
+        {renderEventMarker()}
+        <input
+          type="range"
+          min={minTs}
+          max={maxTs}
+          value={sliderValue}
+          onChange={handleChange}
+          className="timeline-slider w-full"
+        />
+      </div>
     </div>
   );
 }

@@ -1,27 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getKrakenWsService } from "../api/krakenWsService";
 import { applySnapshot, applyDeltas } from "../core/orderbook/orderbookReducer";
 import { KrakenOrderBookData } from "../types/krakenRaw";
+import { OrderBookSnapshot } from "../types/domain";
 import { DEFAULT_DEPTH } from "../config/krakenConfig";
 import { useOrderbookStore } from "../state/useOrderbookStore";
-import { OrderbookTable } from "../components/orderbook/OrderbookTable";
+import { OrderbookHeatmap } from "../components/orderbook/OrderbookHeatmap";
 import { SpreadIndicator } from "../components/orderbook/SpreadIndicator";
 import { globalSnapshotBuffer } from "../core/playback/snapshotBuffer";
-import { usePlaybackSnapshot } from "../hooks/usePlaybackSnapshot";
+import { detectLiquidityWalls } from "../core/events/liquidityEvents";
+import { useEventsStore } from "../state/useEventsStore";
 import { TimelineSlider } from "../components/playback/TimelineSlider";
 import { PlaybackControls } from "../components/playback/PlaybackControls";
 import { usePlaybackStore } from "../state/usePlaybackStore";
-import { OrderbookHeatmap } from "../components/orderbook/OrderbookHeatmap";
-import { detectLiquidityWalls } from "../core/events/liquidityEvents";
-import { OrderBookSnapshot } from "../types/domain";
-import { useEventsStore } from "../state/useEventsStore";
 import { LiquidityEventsList } from "../components/events/LiquidityEventsList";
 
 
 function App() {
-  const snapshot = usePlaybackSnapshot();
   const setSnapshot = useOrderbookStore((s) => s.setSnapshot);
   const reset = useOrderbookStore((s) => s.reset);
+  const [rows, setRows] = useState<number>(10);
+  const addEvents = useEventsStore.getState().addEvents;
 
   // // DEBUG: log whenever the snapshot in the store changes
   // useEffect(() => {
@@ -30,13 +29,11 @@ function App() {
   //   }
   // }, [snapshot]);
 
-useEffect(() => {
-
+  useEffect(() => {
     const service = getKrakenWsService();
-    const addEvents = useEventsStore.getState().addEvents;
-
     let currentSnapshot: OrderBookSnapshot | null = null;
 
+    // We need a non-hook way to read mode inside handlers
     const getPlaybackMode = () => usePlaybackStore.getState().mode;
 
     service.onMessage((msg: any) => {
@@ -47,57 +44,51 @@ useEffect(() => {
 
       const book = payload as KrakenOrderBookData;
 
-      // Helper: deep clone previous snapshot
-      const clonePrev = (): OrderBookSnapshot | null =>
-        currentSnapshot ? JSON.parse(JSON.stringify(currentSnapshot)) : null;
-
-      // === Snapshot (initial/full) ===
+      // Snapshot (initial)
       if (book.as || book.bs) {
-        const prevSnapshot = clonePrev();
-
+        const prevSnapshot = currentSnapshot;
         currentSnapshot = applySnapshot(currentSnapshot, book);
         setSnapshot(currentSnapshot);
 
-        if (getPlaybackMode() === "live" && currentSnapshot) {
+        // Only record history in LIVE mode
+        if (getPlaybackMode() === "live") {
           globalSnapshotBuffer.add(currentSnapshot);
         }
 
-        if (prevSnapshot && currentSnapshot) {
-          const events = detectLiquidityWalls(prevSnapshot, currentSnapshot, {
-            askThreshold: 8,
-            bidThreshold: 8,
-          });
-          if (events.length) {
-            console.log("Liquidity events:", events);
-            addEvents(events);
-          }
+        // detect liquidity walls and add events
+        try {
+          const { askThreshold, bidThreshold } = useEventsStore.getState();
+          const evs = detectLiquidityWalls(prevSnapshot, currentSnapshot, { askThreshold, bidThreshold });
+          if (evs && evs.length) addEvents(evs);
+        } catch (err) {
+          console.error("detectLiquidityWalls error:", err);
         }
 
         return;
       }
 
-      // === Delta (incremental) ===
+      // Delta (updates)
       if (currentSnapshot && (book.a || book.b)) {
-        const prevSnapshot = clonePrev();
-
+        const prevSnapshot = currentSnapshot;
         currentSnapshot = applyDeltas(currentSnapshot, book, DEFAULT_DEPTH);
         setSnapshot(currentSnapshot);
 
-        if (getPlaybackMode() === "live" && currentSnapshot) {
+        if (getPlaybackMode() === "live") {
           globalSnapshotBuffer.add(currentSnapshot);
         }
 
-        if (prevSnapshot && currentSnapshot) {
-          const events = detectLiquidityWalls(prevSnapshot, currentSnapshot, {
-            askThreshold: 8,
-            bidThreshold: 8,
-          });
-          if (events.length) {
-            console.log("Liquidity events:", events);
-            addEvents(events);
-          }
+        // detect liquidity walls and add events
+        try {
+          const { askThreshold, bidThreshold } = useEventsStore.getState();
+          const evs = detectLiquidityWalls(prevSnapshot, currentSnapshot, { askThreshold, bidThreshold });
+          if (evs && evs.length) addEvents(evs);
+        } catch (err) {
+          console.error("detectLiquidityWalls error:", err);
         }
       }
+
+    //console.log("Buffer size:", globalSnapshotBuffer.getRange().length);
+
     });
 
     service.onOpen(() => {
@@ -111,23 +102,42 @@ useEffect(() => {
     return () => service.disconnect();
   }, [setSnapshot, reset]);
 
-
-
   return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-black text-white">
+ 
+      <div className="w-full max-w-3xl flex justify-center">
+        <div className="flex items-center gap-4 mb-3 w-full justify-center">
+          <label className="text-sm text-gray-400 mr-2">Rows</label>
+          <div className="flex items-center gap-3 w-1/2">
+            <input
+              type="range"
+              min={5}
+              max={25}
+              step={1}
+              value={rows}
+              onChange={(e) => setRows(Number(e.target.value))}
+              className="rows-slider w-full"
+            />
+            <div className="text-sm text-gray-300 w-10 text-right font-mono">{rows}</div>
+          </div>
 
-    <div className="w-full max-w-5xl px-4 py-4 flex flex-col gap-4">
-      <PlaybackControls />
-      <TimelineSlider />
+          
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-        <div className="md:col-span-2">
-          <OrderbookHeatmap maxRows={20} />
-        </div>
-        <div className="flex flex-col gap-2">
-          <SpreadIndicator />
-          {/* <OrderbookTable maxRows={15} /> */}
-          <LiquidityEventsList />
-        </div>
+      <OrderbookHeatmap maxRows={rows} />
+      
+    
+      <div className="w-full max-w-3xl">
+        <PlaybackControls />
+        <TimelineSlider />
+      </div>     
+
+      <div className="w-full max-w-3xl flex flex-col gap-2">
+        <SpreadIndicator />
+      </div>
+      <div className="text-xs text-gray-600 mt-4 mb-2">
+        <LiquidityEventsList />
       </div>
     </div>
   );

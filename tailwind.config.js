@@ -4,6 +4,9 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'grid-cols-[auto_1fr_auto]',
+  ],
   theme: {
     extend: {},
   },
