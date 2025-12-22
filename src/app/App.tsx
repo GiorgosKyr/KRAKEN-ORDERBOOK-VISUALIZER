@@ -32,6 +32,8 @@ function App() {
   useEffect(() => {
     const service = getKrakenWsService();
     let currentSnapshot: OrderBookSnapshot | null = null;
+    // throttle history recording to avoid filling the buffer too quickly
+    let lastSnapshotAdd = 0;
 
     // We need a non-hook way to read mode inside handlers
     const getPlaybackMode = () => usePlaybackStore.getState().mode;
@@ -52,7 +54,11 @@ function App() {
 
         // Only record history in LIVE mode
         if (getPlaybackMode() === "live") {
-          globalSnapshotBuffer.add(currentSnapshot);
+          const now = Date.now();
+          if (now - lastSnapshotAdd >= 200) { // add at most 5x per second
+            globalSnapshotBuffer.add(currentSnapshot);
+            lastSnapshotAdd = now;
+          }
         }
 
         // detect liquidity walls and add events
@@ -74,7 +80,11 @@ function App() {
         setSnapshot(currentSnapshot);
 
         if (getPlaybackMode() === "live") {
-          globalSnapshotBuffer.add(currentSnapshot);
+          const now = Date.now();
+          if (now - lastSnapshotAdd >= 200) { // add at most 5x per second
+            globalSnapshotBuffer.add(currentSnapshot);
+            lastSnapshotAdd = now;
+          }
         }
 
         // detect liquidity walls and add events
