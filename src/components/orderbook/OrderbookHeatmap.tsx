@@ -68,6 +68,7 @@ export function OrderbookHeatmap({ maxRows = 50 }: OrderbookHeatmapProps) {
         <div ref={askRef} style={{ height: columnHeight, overflowY: 'auto', paddingRight: 6 }}>
         {asks.filter(lvl => lvl.size >= 0.0001).map((lvl, i) => {
           const pct = maxSize > 0 ? (lvl.size / maxSize) * 100 : 0;
+          const isHighlighted = highlightedPrice != null && lvl.price.toFixed(8) === highlightedPrice.toFixed(8);
           return (
             <div
               key={`ask-${lvl.price}-${i}`}
@@ -81,14 +82,14 @@ export function OrderbookHeatmap({ maxRows = 50 }: OrderbookHeatmapProps) {
                 marginBottom: '6px',
                 fontSize: '12px',
                 fontFamily: "'JetBrains Mono', monospace",
-                background: '#1e1e1e',
+                background: isHighlighted ? 'linear-gradient(90deg, rgba(255,80,80,0.12), rgba(255,80,80,0.04))' : '#1e1e1e',
                 borderRadius: '4px'
               }}
               title={`Price: ${lvl.price.toFixed(2)}\nSize: ${lvl.size.toFixed(4)}`}
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
               onMouseLeave={(e) => e.currentTarget.style.background = '#1e1e1e'}
             >
-              <div style={{ textAlign: "right", paddingRight: "8px", color: "#ff6b6b" }}>
+                <div style={{ textAlign: "right", paddingRight: "8px", color: isHighlighted ? '#ffd7d7' : "#ff6b6b", fontWeight: isHighlighted ? 700 : 400 }}>
                 {lvl.price.toFixed(1)}
               </div>
               <div style={{ textAlign: "right", paddingRight: "8px", color: "#ffffff" }}>
@@ -108,7 +109,7 @@ export function OrderbookHeatmap({ maxRows = 50 }: OrderbookHeatmapProps) {
                     background: pct > 0 ? 'linear-gradient(to right, rgba(255, 70, 70, 0.9), rgba(255, 110, 110, 0.7))' : 'transparent',
                     height: '100%',
                     borderRadius: '4px',
-                    boxShadow: pct > 0 ? '0 0 8px rgba(255,80,80,0.18)' : 'none'
+                    boxShadow: isHighlighted ? '0 0 12px rgba(255,80,80,0.28)' : (pct > 0 ? '0 0 8px rgba(255,80,80,0.18)' : 'none')
                   }}
                 />
               </div>
@@ -124,6 +125,7 @@ export function OrderbookHeatmap({ maxRows = 50 }: OrderbookHeatmapProps) {
         <div ref={bidRef} style={{ height: columnHeight, overflowY: 'auto', paddingRight: 6 }}>
         {bids.filter(lvl => lvl.size >= 0.0001).map((lvl, i) => {
           const pct = maxSize > 0 ? (lvl.size / maxSize) * 100 : 0;
+          const isHighlighted = highlightedPrice != null && lvl.price.toFixed(8) === highlightedPrice.toFixed(8);
           return (
             <div
               key={`bid-${lvl.price}-${i}`}
@@ -137,14 +139,14 @@ export function OrderbookHeatmap({ maxRows = 50 }: OrderbookHeatmapProps) {
                 marginBottom: '6px',
                 fontSize: '12px',
                 fontFamily: "'JetBrains Mono', monospace",
-                background: '#1e1e1e',
+                background: isHighlighted ? 'linear-gradient(90deg, rgba(60,200,120,0.08), rgba(60,200,120,0.02))' : '#1e1e1e',
                 borderRadius: '4px'
               }}
               title={`Price: ${lvl.price.toFixed(2)}\nSize: ${lvl.size.toFixed(4)}`}
               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
               onMouseLeave={(e) => e.currentTarget.style.background = '#1e1e1e'}
             >
-              <div style={{ textAlign: "right", paddingRight: "8px", color: "#4ade80" }}>
+              <div style={{ textAlign: "right", paddingRight: "8px", color: isHighlighted ? '#e6fff0' : "#4ade80", fontWeight: isHighlighted ? 700 : 400 }}>
                 {lvl.price.toFixed(1)}
               </div>
               <div style={{ textAlign: "right", paddingRight: "8px", color: "#ffffff" }}>
@@ -164,7 +166,7 @@ export function OrderbookHeatmap({ maxRows = 50 }: OrderbookHeatmapProps) {
                     background: pct > 0 ? 'linear-gradient(to right, rgba(0, 160, 0, 0.9), rgba(80, 200, 120, 0.7))' : 'transparent',
                     height: '100%',
                     borderRadius: '4px',
-                    boxShadow: pct > 0 ? '0 0 8px rgba(60,200,120,0.12)' : 'none'
+                    boxShadow: isHighlighted ? '0 0 12px rgba(60,200,120,0.18)' : (pct > 0 ? '0 0 8px rgba(60,200,120,0.12)' : 'none')
                   }}
                 />
               </div>
