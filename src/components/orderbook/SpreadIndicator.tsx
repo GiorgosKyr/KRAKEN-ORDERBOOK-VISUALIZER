@@ -20,7 +20,7 @@ export function SpreadIndicator() {
   const mid = (bestAsk + bestBid) / 2;
 
   return (
-    <div className="p-2 rounded bg-black/50 border border-gray-700 text-sm text-white mb-2 w-full max-w-xl">
+    <div className="p-2 rounded bg-black/50 border border-gray-700 text-sm text-white mb-2 w-full max-w-xl mx-auto">
       <div className="flex justify-between">
         <div>Best Bid:</div>
         <div className="font-mono text-green-400">{bestBid.toFixed(1)}</div>

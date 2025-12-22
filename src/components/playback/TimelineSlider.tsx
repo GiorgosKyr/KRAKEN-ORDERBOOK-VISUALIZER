@@ -38,10 +38,10 @@ export function TimelineSlider() {
   const hasRange = minTs != null && maxTs != null;
   const timeRange = hasRange ? (maxTs! - minTs!) : 0;
   const scale = 0.1; // pixels per ms, adjust for visibility
-  const timelineWidth = timeRange * scale;
+  const timelineWidth = hasRange ? Math.max(timeRange * scale, 0) : 0;
 
   const timePoints = useMemo(() => {
-    if (!minTs || !maxTs) return [];
+    if (!hasRange) return [];
     const points = [];
     const step = 5000; // 5 seconds
     for (let t = minTs; t <= maxTs; t += step) {
@@ -91,19 +91,34 @@ export function TimelineSlider() {
     if (!containerRef.current) return;
     if (!hasRange) return;
     if (mode !== "playback") return;
-    if (!cursorTime) return;
+    // Prefer centering a highlighted event if one exists (e.g. Jump -> event pin),
+    // otherwise center the playback cursor.
     const container = containerRef.current;
-    const pos = ((cursorTime - minTs!) / timeRange) * timelineWidth;
+    const targetTs = highlightedEventTime ?? cursorTime;
+    if (!targetTs) return;
+    const pos = ((targetTs - minTs!) / timeRange) * timelineWidth;
     const leftEdge = container.scrollLeft + 40;
     const rightEdge = container.scrollLeft + container.clientWidth - 40;
     if (pos < leftEdge || pos > rightEdge) {
       const target = Math.max(0, pos - container.clientWidth / 2);
       container.scrollTo({ left: target, behavior: 'smooth' });
     }
-  }, [cursorTime, mode, hasRange, timelineWidth, timeRange, minTs]);
+  }, [cursorTime, highlightedEventTime, mode, hasRange, timelineWidth, timeRange, minTs]);
+
+  // Ensure highlighted events (e.g. from Jump) immediately center the timeline.
+  useEffect(() => {
+    if (!containerRef.current) return;
+    if (!hasRange) return;
+    if (!highlightedEventTime) return;
+    const container = containerRef.current;
+    const pos = ((highlightedEventTime - minTs!) / timeRange) * timelineWidth;
+    const target = Math.max(0, pos - container.clientWidth / 2);
+    // use requestAnimationFrame to ensure layout is ready (after cursor seek)
+    requestAnimationFrame(() => container.scrollTo({ left: target, behavior: 'smooth' }));
+  }, [highlightedEventTime, hasRange, timelineWidth, timeRange, minTs]);
 
   return (
-    <div className="w-full max-w-xl mx-auto mb-3" style={{ position: "relative" }}>
+    <div className="w-full mx-auto mb-6" style={{ position: "relative" }}>
       <div className="flex items-center justify-between mb-1 text-xs text-gray-400">
         <span>
           Mode:{" "}
@@ -132,7 +147,8 @@ export function TimelineSlider() {
           borderRadius: "6px",
           background: "#0f1724",
           cursor: "crosshair",
-          padding: "8px 0 18px"
+          padding: "12px 0 56px",
+          boxSizing: 'border-box'
         }}
         onClick={handleTimelineClick}
       >
@@ -143,7 +159,7 @@ export function TimelineSlider() {
           .timeline-scroll { scrollbar-width: thin; }
         `}</style>
 
-        <div style={{ position: "relative", width: `${timelineWidth}px`, height: "100%", minHeight: 56 }}>
+        <div style={{ position: "relative", width: timelineWidth > 0 ? `${timelineWidth}px` : '100%', minWidth: '100%', height: "100%", minHeight: 56 }}>
               {/* Timeline line */}
               <div style={{
                 position: "absolute",
@@ -222,11 +238,13 @@ export function TimelineSlider() {
           </div>
         </div>
 
-        {/* Overlay labels (always visible) */}
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 18, pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', left: 10, bottom: 6, fontSize: 11, color: '#9ca3af' }}>{hasRange ? formatTime(minTs!) : ''}</div>
-          <div style={{ position: 'absolute', right: 10, bottom: 6, fontSize: 11, color: '#9ca3af' }}>{hasRange ? formatTime(maxTs!) : ''}</div>
-          <div style={{ position: 'absolute', left: '50%', bottom: 6, transform: 'translateX(-50%)', fontSize: 11, color: '#9ca3af' }}>{hasRange ? `${Math.round(timeRange / 1000)}s` : ''}</div>
+        {/* Range labels placed below the scroller so they aren't covered by the scrollbar */}
+        <div className="w-full mt-2 px-2">
+          <div className="w-full flex items-center justify-between text-[11px] text-[#9ca3af]">
+            <div className="whitespace-nowrap">{hasRange ? formatTime(minTs!) : ''}</div>
+            <div className="text-center">{hasRange ? `${Math.round(timeRange / 1000)}s` : ''}</div>
+            <div className="whitespace-nowrap">{hasRange ? formatTime(maxTs!) : ''}</div>
+          </div>
         </div>
       </div>
   );
